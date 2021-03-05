@@ -40,14 +40,14 @@ SystemTask::SystemTask(Drivers::SpiMaster &spi, Drivers::St7789 &lcd,
                        Components::LittleVgl &lvgl,
                        Controllers::Battery &batteryController, Controllers::Ble &bleController,
                        Controllers::DateTime &dateTimeController,
-                       Pinetime::Controllers::MotorController& motorController,
+/*                       Pinetime::Controllers::MotorController& motorController,*/
                        Pinetime::Drivers::Hrs3300& heartRateSensor) :
                        spi{spi}, lcd{lcd}, spiNorFlash{spiNorFlash},
                        twiMaster{twiMaster}, touchPanel{touchPanel}, lvgl{lvgl}, batteryController{batteryController},
                        heartRateController{*this},
                        bleController{bleController}, dateTimeController{dateTimeController},
                        watchdog{}, watchdogView{watchdog},
-                       motorController{motorController}, heartRateSensor{heartRateSensor},
+                       /*motorController{motorController},*/ heartRateSensor{heartRateSensor},
                        nimbleController(*this, bleController,dateTimeController, notificationManager, batteryController, spiNorFlash, heartRateController) {
   systemTasksMsgQueue = xQueueCreate(10, 1);
 }
@@ -65,7 +65,7 @@ void SystemTask::Process(void *instance) {
 
 void SystemTask::Work() {
   watchdog.Setup(7);
-  watchdog.Start();
+//  watchdog.Start();
   NRF_LOG_INFO("Last reset reason : %s", Pinetime::Drivers::Watchdog::ResetReasonToString(watchdog.ResetReason()));
   APP_GPIOTE_INIT(2);
 
@@ -74,21 +74,21 @@ void SystemTask::Work() {
   spiNorFlash.Wakeup();
   nimbleController.Init();
   nimbleController.StartAdvertising();
-  lcd.Init();
+//  lcd.Init();
 
   twiMaster.Init();
   touchPanel.Init();
   batteryController.Init();
-  motorController.Init();
+//  motorController.Init();
 
 
-  displayApp.reset(new Pinetime::Applications::DisplayApp(lcd, lvgl, touchPanel, batteryController, bleController,
+/*  displayApp.reset(new Pinetime::Applications::DisplayApp(lcd, lvgl, touchPanel, batteryController, bleController,
                                                           dateTimeController, watchdogView, *this, notificationManager,
-                                                          heartRateController));
-  displayApp->Start();
+                                                          heartRateController));*/
+//  displayApp->Start();
 
   batteryController.Update();
-  displayApp->PushMessage(Pinetime::Applications::DisplayApp::Messages::UpdateBatteryLevel);
+//  displayApp->PushMessage(Pinetime::Applications::DisplayApp::Messages::UpdateBatteryLevel);
 
   heartRateSensor.Init();
   heartRateSensor.Disable();
@@ -139,10 +139,10 @@ void SystemTask::Work() {
           xTimerStart(idleTimer, 0);
           spiNorFlash.Wakeup();
           touchPanel.Wakeup();
-          lcd.Wakeup();
+//          lcd.Wakeup();
 
-          displayApp->PushMessage(Applications::DisplayApp::Messages::GoToRunning);
-          displayApp->PushMessage(Applications::DisplayApp::Messages::UpdateBatteryLevel);
+//          displayApp->PushMessage(Applications::DisplayApp::Messages::GoToRunning);
+//          displayApp->PushMessage(Applications::DisplayApp::Messages::UpdateBatteryLevel);
           heartRateApp->PushMessage(Pinetime::Applications::HeartRateTask::Messages::WakeUp);
 
           isSleeping = false;
@@ -152,17 +152,17 @@ void SystemTask::Work() {
           isGoingToSleep = true;
           NRF_LOG_INFO("[systemtask] Going to sleep");
           xTimerStop(idleTimer, 0);
-          displayApp->PushMessage(Pinetime::Applications::DisplayApp::Messages::GoToSleep);
+//          displayApp->PushMessage(Pinetime::Applications::DisplayApp::Messages::GoToSleep);
           heartRateApp->PushMessage(Pinetime::Applications::HeartRateTask::Messages::GoToSleep);
           break;
         case Messages::OnNewTime:
           ReloadIdleTimer();
-          displayApp->PushMessage(Pinetime::Applications::DisplayApp::Messages::UpdateDateTime);
+//          displayApp->PushMessage(Pinetime::Applications::DisplayApp::Messages::UpdateDateTime);
           break;
         case Messages::OnNewNotification:
           if(isSleeping && !isWakingUp) GoToRunning();
-          if(notificationManager.IsVibrationEnabled()) motorController.SetDuration(35);
-          displayApp->PushMessage(Pinetime::Applications::DisplayApp::Messages::NewNotification);
+          //if(notificationManager.IsVibrationEnabled()) motorController.SetDuration(35);
+//          displayApp->PushMessage(Pinetime::Applications::DisplayApp::Messages::NewNotification);
           break;
         case Messages::BleConnected:
           ReloadIdleTimer();
@@ -172,7 +172,7 @@ void SystemTask::Work() {
         case Messages::BleFirmwareUpdateStarted:
           doNotGoToSleep = true;
           if(isSleeping && !isWakingUp) GoToRunning();
-          displayApp->PushMessage(Pinetime::Applications::DisplayApp::Messages::BleFirmwareUpdateStarted);
+//          displayApp->PushMessage(Pinetime::Applications::DisplayApp::Messages::BleFirmwareUpdateStarted);
           break;
         case Messages::BleFirmwareUpdateFinished:
           doNotGoToSleep = false;
@@ -192,7 +192,7 @@ void SystemTask::Work() {
             // if it's in sleep mode. Avoid bricked device by disabling sleep mode on these versions.
             spiNorFlash.Sleep();
           }
-          lcd.Sleep();
+//          lcd.Sleep();
           touchPanel.Sleep();
 
           spi.Sleep();
@@ -230,7 +230,7 @@ void SystemTask::OnButtonPushed() {
   if(!isSleeping) {
     NRF_LOG_INFO("[systemtask] Button pushed");
     PushMessage(Messages::OnButtonEvent);
-    displayApp->PushMessage(Pinetime::Applications::DisplayApp::Messages::ButtonPushed);
+//    displayApp->PushMessage(Pinetime::Applications::DisplayApp::Messages::ButtonPushed);
   }
   else {
     if(!isWakingUp) {
@@ -250,7 +250,7 @@ void SystemTask::OnTouchEvent() {
   NRF_LOG_INFO("[systemtask] Touch event");
   if(!isSleeping) {
     PushMessage(Messages::OnTouchEvent);
-    displayApp->PushMessage(Pinetime::Applications::DisplayApp::Messages::TouchEvent);
+//    displayApp->PushMessage(Pinetime::Applications::DisplayApp::Messages::TouchEvent);
   }
 }
 
