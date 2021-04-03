@@ -5,6 +5,9 @@
 #include <libraries/gpiote/app_gpiote.h>
 #include <libraries/timer/app_timer.h>
 #include <softdevice/common/nrf_sdh.h>
+#include "sdk_common.h"
+#include <hal/nrf_uarte.h>
+#include "legacy/nrf_drv_spi.h"
 
 // nimble
 #define min // workaround: nimble's min/max macros conflict with libstdc++
@@ -49,6 +52,9 @@ Pinetime::Logging::NrfLogger logger;
 #include "logging/DummyLogger.h"
 Pinetime::Logging::DummyLogger logger;
 #endif
+
+
+#define SPI_FLASH 0
 
 static constexpr uint8_t pinSpiSck = 2;
 static constexpr uint8_t pinSpiMosi = 3;
@@ -234,9 +240,45 @@ void nimble_port_ll_task_func(void *args) {
 }
 }
 
+// static const nrf_drv_spi_t sdk_spi = NRF_DRV_SPI_INSTANCE(SPI_FLASH);  /**< SPI instance. */
+
+
+void bootloader_deinit()
+{
+	nrf_uarte_disable(NRF_UARTE0);
+	nrf_uarte_int_disable(NRF_UARTE0, 0xFFFFFFFF);	
+    nrf_rtc_task_trigger(NRF_RTC0, NRF_RTC_TASK_STOP);
+    nrf_rtc_event_disable(NRF_RTC0, 0xFFFFFFFF);
+    nrf_rtc_int_disable(NRF_RTC0, 0xFFFFFFFF);
+
+    nrf_rtc_task_trigger(NRF_RTC1, NRF_RTC_TASK_STOP);
+    nrf_rtc_event_disable(NRF_RTC1, 0xFFFFFFFF);
+    nrf_rtc_int_disable(NRF_RTC1, 0xFFFFFFFF);
+
+    nrf_rtc_task_trigger(NRF_RTC2, NRF_RTC_TASK_STOP);
+    nrf_rtc_event_disable(NRF_RTC2, 0xFFFFFFFF);
+    nrf_rtc_int_disable(NRF_RTC2, 0xFFFFFFFF);
+
+//	nrf_clock_int_disable(NRF_CLOCK, 0xFFFFFFFF);
+
+//	nrfx_timer_disable(NRF_TIMER0);
+	NRF_TIMER0->TASKS_STOP = 1;
+	NRF_TIMER0->TASKS_SHUTDOWN = 1;
+//	nrf_drv_spi_uninit(&sdk_spi);
+
+}
+
+
 int main(void) {
   logger.Init();
 
+#if 0
+  while (1) {
+    __WFE();
+    }
+#endif
+
+  bootloader_deinit();
   nrf_drv_clock_init();
 
   debounceTimer = xTimerCreate ("debounceTimer", 200, pdFALSE, (void *) 0, DebounceTimerCallback);
